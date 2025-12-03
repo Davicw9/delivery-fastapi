@@ -1,11 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException
 from models import Usuario
-from schemas import UsuarioSchema
+from schemas import UsuarioSchema, LoginSchema
 from sqlalchemy.orm import session
 from dependencies import pegar_sessao
 from main import bcrypt_context
 
 auth_router = APIRouter(prefix="/auth", tags=["auth"])
+
+def criar_token(id_usuario):
+    """Função para criar token JWT (a ser implementada)."""
+    token = f"adf5sa4f2d1agwfags{id_usuario}"
+    return token
 
 @auth_router.get("/login")
 async def home():
@@ -25,3 +30,17 @@ async def criar_conta(usuario_schema: UsuarioSchema, session: session=Depends(pe
         session.add(novo_usuario)
         session.commit()
         return {"message": f"Novo usuario cadastrado com sucesso {usuario_schema.email}"}
+
+# login - email e senha -> token JWT (Jason Web Token) nbbvmdsa564df621sc98easd4fw6a
+@auth_router.post("/login")
+async def login(login_schema: LoginSchema, session: session=Depends(pegar_sessao)):
+    """Rota para autenticação de usuários e geração de token JWT."""
+    usuario = session.query(Usuario).filter(Usuario.email == login_schema.email).first()
+    if not usuario:
+        raise HTTPException(status_code=400, detail="Usuario não encontrado")
+    else:
+        access_token = criar_token(usuario.id)
+        return {
+            "access_token": access_token,
+            "token_type": "bearer"
+            }
