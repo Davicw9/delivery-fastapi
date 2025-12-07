@@ -12,6 +12,15 @@ def criar_token(id_usuario):
     token = f"adf5sa4f2d1agwfags{id_usuario}"
     return token
 
+def autenticar_usuario(email, senha, session):
+    """Função para autenticar usuário"""
+    usuario = session.query(Usuario).filter(Usuario.email == email).first()
+    if not usuario:
+        return False
+    elif not bcrypt_context.verify(senha, usuario.senha):
+        return False
+    return usuario
+
 @auth_router.get("/login")
 async def home():
     """Rota padrão de autenticação de usuários do nosso sistema."""
@@ -35,9 +44,10 @@ async def criar_conta(usuario_schema: UsuarioSchema, session: session=Depends(pe
 @auth_router.post("/login")
 async def login(login_schema: LoginSchema, session: session=Depends(pegar_sessao)):
     """Rota para autenticação de usuários e geração de token JWT."""
-    usuario = session.query(Usuario).filter(Usuario.email == login_schema.email).first()
+    usuario = autenticar_usuario(login_schema.email, login_schema.senha, session)
+
     if not usuario:
-        raise HTTPException(status_code=400, detail="Usuario não encontrado")
+        raise HTTPException(status_code=400, detail="Usuario não encontrado ou senha incorreta")
     else:
         access_token = criar_token(usuario.id)
         return {
