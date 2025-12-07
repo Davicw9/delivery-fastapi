@@ -7,11 +7,11 @@ from main import bcrypt_context, ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM, SECRET_
 from jose import JWTError, jwt
 from datetime import datetime, timedelta, timezone
 
-auth_router = APIRouter(prefix="/auth", tags=["auth"])
+#------------------- Funções auxiliares ------------------#
 
-def criar_token(id_usuario):
+def criar_token(id_usuario, duracao_token=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)):
     """Função para criar token JWT"""
-    data_expiracao = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    data_expiracao = datetime.now(timezone.utc) + duracao_token
     dic_info = {"sub": id_usuario, "exp": data_expiracao}
     jwt_codificado = jwt.encode(dic_info, SECRET_KEY, ALGORITHM)
     return jwt_codificado
@@ -24,6 +24,14 @@ def autenticar_usuario(email, senha, session):
     elif not bcrypt_context.verify(senha, usuario.senha):
         return False
     return usuario
+
+def verificar_token(token, session: session=Depends(pegar_sessao)):
+    return usuario.session.query(Usuario).filter(Usuario.id == 1).first()
+
+#------------------- Rotas de autenticação ------------------#
+
+auth_router = APIRouter(prefix="/auth", tags=["auth"])
+
 
 @auth_router.get("/login")
 async def home():
@@ -54,7 +62,19 @@ async def login(login_schema: LoginSchema, session: session=Depends(pegar_sessao
         raise HTTPException(status_code=400, detail="Usuario não encontrado ou senha incorreta")
     else:
         access_token = criar_token(usuario.id)
+        refresh_token = criar_token(usuario.id, duracao_token=timedelta(days=7))
         return {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer"
+            }
+    
+@auth_router.post("/refresh")
+async def refresh_token(token):
+    """Rota para refresh token (atualização do token de acesso)."""
+    usuario = verificar_token(token)
+    access_token = criar_token()
+    return {
             "access_token": access_token,
             "token_type": "bearer"
             }
