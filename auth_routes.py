@@ -3,14 +3,18 @@ from models import Usuario
 from schemas import UsuarioSchema, LoginSchema
 from sqlalchemy.orm import session
 from dependencies import pegar_sessao
-from main import bcrypt_context
+from main import bcrypt_context, ACCESS_TOKEN_EXPIRE_MINUTES, ALGORITHM, SECRET_KEY
+from jose import JWTError, jwt
+from datetime import datetime, timedelta, timezone
 
 auth_router = APIRouter(prefix="/auth", tags=["auth"])
 
 def criar_token(id_usuario):
-    """Função para criar token JWT (a ser implementada)."""
-    token = f"adf5sa4f2d1agwfags{id_usuario}"
-    return token
+    """Função para criar token JWT"""
+    data_expiracao = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    dic_info = {"sub": id_usuario, "exp": data_expiracao}
+    jwt_codificado = jwt.encode(dic_info, SECRET_KEY, ALGORITHM)
+    return jwt_codificado
 
 def autenticar_usuario(email, senha, session):
     """Função para autenticar usuário"""
